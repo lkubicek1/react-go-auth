@@ -15,7 +15,7 @@ func main() {
 	// Initialize environment configuration
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		log.Printf("Error loading .env file: %v", err)
 	}
 
 	// Configure CORS
