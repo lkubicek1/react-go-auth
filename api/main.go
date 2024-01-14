@@ -1,21 +1,47 @@
 package main
 
 import (
-	"api/config" // Assuming this package contains your EnvVars and other configurations
+	"api/middleware"
 	"api/routes"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"log"
 )
 
 func main() {
 	router := gin.Default()
 
-	// Initialize your configuration
-	// Assuming you have a function or method to load your environment variables
-	envConfig := config.LoadEnv()
+	// Initialize environment configuration
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 
-	// Now pass this configuration to your AdminRoutes
-	routes.AdminRoutes(router, envConfig)
+	// Configure CORS
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		AllowWildcard:    true,
+	}))
+
+	// Allow all origins for CORS - For testing only
+	//router.Use(cors.Default())
+
+	// Routes
+	routes.StatusRoutes(router)
+	routes.CounterRoutes(router)
+
+	// Secured Routes
+	auth := middleware.NewAuthMiddleware()
+	routes.UserCounterRoutes(router, auth)
 
 	// Start the server
-	router.Run(":8080")
+	err = router.Run(":8080")
+	if err != nil {
+		return
+	}
 }
