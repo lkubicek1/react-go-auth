@@ -12,7 +12,6 @@ This project demonstrates a full-stack application using React (front-end), Vite
 ## Auth0 Setup
 1. **Create an Auth0 Tenant:**
    - Sign up/Login to Auth0.
-   - Create a new tenant by providing a unique name and region.
 
 2. **Register an Application:**
    - Go to 'Applications' → 'Applications' in the Auth0 dashboard.
