@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"os"
@@ -19,7 +21,13 @@ type User struct {
 	Password string `json:"password" bson:"password"`
 }
 
+type Claims struct {
+	Username string `json:"username"`
+	jwt.StandardClaims
+}
+
 var client *mongo.Client
+var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 func initMongoDB(dbUser string, dbPass string, dbName string, dbHost string, dbPort string) {
 	var err error
@@ -46,6 +54,12 @@ func main() {
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET is not set")
+	}
+	jwtKey = []byte(jwtSecret)
+
 	initMongoDB(dbUser, dbPass, dbName, dbHost, dbPort)
 
 	router := gin.Default()
@@ -67,8 +81,16 @@ func main() {
 			return
 		}
 
-		collection := client.Database("mydb").Collection("users")
-		_, err := collection.InsertOne(context.TODO(), newUser)
+		// Hash the password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
+			return
+		}
+		newUser.Password = string(hashedPassword)
+
+		collection := client.Database(dbName).Collection("users")
+		_, err = collection.InsertOne(context.TODO(), newUser)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while registering user"})
 			return
@@ -84,7 +106,7 @@ func main() {
 			return
 		}
 
-		collection := client.Database("mydb").Collection("users")
+		collection := client.Database(dbName).Collection("users")
 		var result User
 		err := collection.FindOne(context.TODO(), bson.M{"username": loginUser.Username}).Decode(&result)
 		if err != nil {
@@ -92,9 +114,33 @@ func main() {
 			return
 		}
 
-		// Add password comparison logic here
-		// For simplicity, assuming password matches if user is found
-		c.JSON(http.StatusOK, gin.H{"token": "dummy-token"})
+		// Compare the provided password with the stored hash
+		err = bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(loginUser.Password))
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+			return
+		}
+
+		// Create the JWT claims, which includes the username and expiry time
+		expirationTime := time.Now().Add(5 * time.Minute)
+		claims := &Claims{
+			Username: loginUser.Username,
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationTime.Unix(),
+			},
+		}
+
+		// Declare the token with the algorithm used for signing, and the claims
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+		// Create the JWT string
+		tokenString, err := token.SignedString(jwtKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating JWT token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"token": tokenString})
 	})
 
 	router.Run(":8080")

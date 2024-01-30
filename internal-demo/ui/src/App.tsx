@@ -37,6 +37,11 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Remove the token from local storage
+    setUser(null); // Update user state to null
+  };
+
   return (
     <>
       <div>
@@ -52,6 +57,7 @@ function App() {
         <div>
           <h2>Welcome, {user.username}</h2>
           {/* Protected content goes here */}
+          <button onClick={handleLogout}>Logout</button>
         </div>
       ) : (
         <div className="card">
