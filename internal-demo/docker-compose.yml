@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  database:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./database/init.js:/docker-entrypoint-initdb.d/init.js
+      - mongodata:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS}
+      MONGO_INITDB_DATABASE: ${DB_NAME}
+  api:
+    build: ./api
+    ports:
+      - "8080:8080"
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: database
+      DB_PORT: ${DB_PORT}
+    depends_on:
+      - database
+
+  ui:
+    build: ./ui
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  mongodata:
