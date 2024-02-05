@@ -4,13 +4,13 @@ This project, part of a larger repository, demonstrates how to implement user au
 
 ## Overview
 
-The `internal-demo` project showcases various features and best practices in building an internal user management system. It includes user registration, login, password encryption, JWT token management, and more. This approach gives you complete control over user data and authentication flows.
+The `internal-demo` project showcases various features and best practices in building an internal user management system. It includes user registration, login, password encryption, Session management, and more. This approach gives you complete control over user data and authentication flows.
 
 ## Features
 
 - User Registration and Login
 - Password Hashing and Secure Storage
-- JWT (JSON Web Tokens) for Authentication
+- Session Cookies for Authentication
 - Role-Based Access Control (RBAC)
 - Integration with MongoDB for data persistence
 - CORS Configuration
@@ -21,7 +21,7 @@ The `internal-demo` project showcases various features and best practices in bui
 - **Backend**: Go (Gin-Gonic Framework)
 - **Database**: MongoDB
 - **Frontend**: React (with Vite)
-- **Authentication**: JWT, bcrypt for password hashing
+- **Authentication**: Sessions, bcrypt for password hashing
 
 ## Getting Started
 
